@@ -2,8 +2,8 @@ $ErrorActionPreference = 'Stop'
 $toolsPath = $(Split-Path -parent $MyInvocation.MyCommand.Definition)
 . "$toolsPath\helpers.ps1"
 
-$packagePath = Join-Path $toolsPath $PackageName
-$binPath = Join-Path $packagePath "bin\code.cmd"
+$installDir = Join-Path $toolsPath $PackageName
+$binPath = Join-Path $installDir "bin\code.cmd"
 
 $softwareName = 'Microsoft Visual Studio Code'
 $version = '1.43.2'
@@ -34,13 +34,24 @@ $packageArgs = @{
 
 Install-ChocolateyZipPackage @PackageArgs
 
+If(!$pp.NoDesktopIcon)
+{
+  $linkPath = Join-Path $([Environment]::GetFolderPath("CommonDesktopDirectory")) "Visual Studio Code.lnk"
+  Install-ChocolateyShortcut -ShortcutFilePath $linkPath -TargetPath $binPath -WorkingDirectory $installDir
+}
+
+If(!$pp.NoQuicklaunchIcon)
+{
+  Install-ChocolateyPinnedTaskBarItem -TargetFilePath $binPath
+}
+
 If(!$pp.DontAddToPath)
 {
   Install-BinFile -Name code -Path $binPath
+  New-Item "$binPath.gui" -type file -force | Out-Null
 }
 
-If(!$dd.NoDesktopIcon)
+If(!$pp.NoContextMenuFiles -and !$pp.NoContextMenuFolders)
 {
-  $linkPath = Join-Path $([Environment]::GetFolderPath("CommonDesktopDirectory")) "Visual Studio Code.lnk"
-  Install-ChocolateyShortcut -ShortcutFilePath $linkPath -TargetPath $binPath -WorkingDirectory $packagePath
+  
 }
