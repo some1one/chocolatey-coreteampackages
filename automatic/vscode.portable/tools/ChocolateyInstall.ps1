@@ -1,10 +1,12 @@
+$packageName = 'vscode.portable'
 $ErrorActionPreference = 'Stop'
-$toolsPath = $(Split-Path -parent $MyInvocation.MyCommand.Definition)
+$toolsPath = $(Split-Path -Parent $MyInvocation.MyCommand.Definition)
 . "$toolsPath\helpers.ps1"
 
-$installDir = Join-Path $toolsPath $PackageName
-$exePath = Join-Path $installDir "Code.exe"
-$cmdPath = Join-Path $installDir "bin\code.cmd"
+$installPath = Join-Path $toolsPath $packageName
+$exePath = Join-Path $installPath "Code.exe"
+$cmdPath = Join-Path $installPath "bin\code.cmd"
+$shortcutPath = Join-Path $([Environment]::GetFolderPath("CommonDesktopDirectory")) "Visual Studio Code.lnk"
 
 $softwareName = 'Microsoft Visual Studio Code'
 $version = '1.43.2'
@@ -17,7 +19,7 @@ $pp = Get-PackageParameters
 Close-VSCode
 
 $packageArgs = @{
-  packageName    = 'vscode.portable'
+  packageName    = $packageName
   
   url            = 'https://az764295.vo.msecnd.net/stable/0ba0ca52957102ca3527cf479571617f0de6ed50/VSCodeSetup-ia32-1.43.2.exe'
   url64          = 'https://az764295.vo.msecnd.net/stable/0ba0ca52957102ca3527cf479571617f0de6ed50/VSCodeSetup-x64-1.43.2.exe'
@@ -35,7 +37,6 @@ New-Item "$exePath.gui" -type file -force | Out-Null
 New-Item "$exePath.ignore" -type file -force | Out-Null
 Install-ChocolateyZipPackage @PackageArgs
 
-$shortcutPath = Join-Path $([Environment]::GetFolderPath("CommonDesktopDirectory")) "Visual Studio Code.lnk"
 $args = ""
 
 If($pp.UserDataDir)
@@ -57,11 +58,11 @@ If(!$pp.NoDesktopIcon)
 {
   If($pp.NoQuicklaunchIcon)
   {
-    Install-ChocolateyShortcut -ShortcutFilePath $shortcutPath -TargetPath $exePath -WorkingDirectory $installDir -Arguments $args
+    Install-ChocolateyShortcut -ShortcutFilePath $shortcutPath -TargetPath $exePath -WorkingDirectory $installPath -Arguments $args
   }
   else
   {
-    Install-ChocolateyShortcut -ShortcutFilePath $shortcutPath -TargetPath $exePath -WorkingDirectory $installDir -Arguments $args -PinToTaskbar
+    Install-ChocolateyShortcut -ShortcutFilePath $shortcutPath -TargetPath $exePath -WorkingDirectory $installPath -Arguments $args -PinToTaskbar
   }
 }
 
