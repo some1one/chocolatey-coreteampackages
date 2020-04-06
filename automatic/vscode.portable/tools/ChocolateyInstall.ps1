@@ -16,8 +16,6 @@ if ($version -eq (Get-UninstallRegistryKey "$softwareName").DisplayVersion) {
 }
 
 $pp = Get-PackageParameters
-Close-VSCode
-
 $packageArgs = @{
   packageName    = $packageName
   
@@ -32,6 +30,10 @@ $packageArgs = @{
 
   unzipLocation = "$toolsPath"
 }
+
+Get-Process code -ea 0 | ForEach-Object { $_.CloseMainWindow() | Out-Null }
+Start-Sleep 1
+Get-Process code -ea 0 | Stop-Process  #in case gracefull shutdown did not succeed, try hard kill
 
 New-Item "$exePath.gui" -type file -force | Out-Null
 New-Item "$exePath.ignore" -type file -force | Out-Null
