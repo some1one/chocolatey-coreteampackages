@@ -17,7 +17,7 @@ jobs:
       uses: robotology/gh-action-nightly-merge@v1.2.0
       with:
         stable_branch: 'chocolatey-community/chocolatey-coreteampackages'
-        development_branch: 'some1one/chocolatey-coreteampackages'
+        development_branch: 'chocolatey-coreteampackages'
         allow_ff: false
         allow_forks: true
       env:
