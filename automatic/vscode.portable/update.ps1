@@ -4,25 +4,19 @@ import-module "$PSScriptRoot\..\..\extensions\chocolatey-core.extension\extensio
 $releases32 = 'https://vscode-update.azurewebsites.net/api/update/win32-archive/stable/VERSION'
 $releases64 = 'https://vscode-update.azurewebsites.net/api/update/win32-x64-archive/stable/VERSION'
 
-if ($MyInvocation.InvocationName -ne '.') {
-  function global:au_BeforeUpdate {
-    $Latest.Checksum32 = Get-RemoteChecksum $Latest.URL32
-    $Latest.Checksum64 = Get-RemoteChecksum $Latest.URL64
-  }
+function global:au_BeforeUpdate {
+  $Latest.Checksum32 = Get-RemoteChecksum $Latest.URL32
+  $Latest.Checksum64 = Get-RemoteChecksum $Latest.URL64
 }
 
 function global:au_SearchReplace {
     @{
-        'tools\chocolateyInstall.ps1' = @{
-            "(?i)(^\s*packageName\s*=\s*)('.*')" = "`$1'$($Latest.PackageName)'"
+        'tools\ChocolateyInstall.ps1' = @{
+            "(?i)(^[$]packageName\s*=\s*)('.*')" = "`$1'$($Latest.PackageName)'"
             "(?i)(^\s*url\s*=\s*)('.*')"         = "`$1'$($Latest.URL32)'"
-            "(?i)(^\s*url64bit\s*=\s*)('.*')"    = "`$1'$($Latest.URL64)'"
+            "(?i)(^\s*url64\s*=\s*)('.*')"    = "`$1'$($Latest.URL64)'"
             "(?i)(^\s*checksum\s*=\s*)('.*')"    = "`$1'$($Latest.Checksum32)'"
             "(?i)(^\s*checksum64\s*=\s*)('.*')"  = "`$1'$($Latest.Checksum64)'"
-            "(?i)(^[$]version\s*=\s*)('.*')"     = "`$1'$($Latest.RemoteVersion)'"
-        }
-        "$($Latest.PackageName).nuspec" = @{
-            "(\<dependency .+?`"$($Latest.PackageName).install`" version=)`"([^`"]+)`"" = "`$1`"[$($Latest.Version)]`""
         }
      }
 }

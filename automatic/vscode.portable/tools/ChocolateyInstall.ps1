@@ -1,31 +1,22 @@
-$packageName = 'vscode.portable'
+﻿$packageName = 'vscode.portable'
 $ErrorActionPreference = 'Stop'
+
 $toolsPath = $(Split-Path -Parent $MyInvocation.MyCommand.Definition)
-. "$toolsPath\helpers.ps1"
-
-$installPath = Join-Path $toolsPath $packageName
-$exePath = Join-Path $installPath "Code.exe"
-$cmdPath = Join-Path $installPath "bin\code.cmd"
+$exePath = Join-Path $toolsPath "Code.exe"
+$cmdPath = Join-Path $toolsPath "bin\code.cmd"
 $shortcutPath = Join-Path $([Environment]::GetFolderPath("CommonDesktopDirectory")) "Visual Studio Code.lnk"
-
-$softwareName = 'Microsoft Visual Studio Code'
-$version = '1.43.2'
-if ($version -eq (Get-UninstallRegistryKey "$softwareName").DisplayVersion) {
-  Write-Host "VS Code $version is already installed."
-  return
-}
 
 $pp = Get-PackageParameters
 $packageArgs = @{
   packageName    = $packageName
-  
-  url            = 'https://az764295.vo.msecnd.net/stable/0ba0ca52957102ca3527cf479571617f0de6ed50/VSCodeSetup-ia32-1.43.2.exe'
-  url64          = 'https://az764295.vo.msecnd.net/stable/0ba0ca52957102ca3527cf479571617f0de6ed50/VSCodeSetup-x64-1.43.2.exe'
-  
-  checksum       = 'c66712e0d55727fbb94d4c665a33f071cb6165278617a9ee9a51d5ded172df08'
+
+  url            = 'https://az764295.vo.msecnd.net/stable/0ba0ca52957102ca3527cf479571617f0de6ed50/VSCode-win32-ia32-1.43.2.zip'
+  url64          = 'https://az764295.vo.msecnd.net/stable/0ba0ca52957102ca3527cf479571617f0de6ed50/VSCode-win32-x64-1.43.2.zip'
+
+  checksum       = 'dbee3793b6b4f9c4f67448089a225227d5e4dec0a38163de6a5777eb44509530'
   checksumType   = 'sha256'
-  
-  checksum64     = '598c24e8db07b61346c7966601d458e2134abdeaba22f83431594dc734bfbc4b'
+
+  checksum64     = '2ad9da475f986abebe2189b9ddea1753d0fdf292ecc6f5b9b6c408312b09348e'
   checksumType64 = 'sha256'
 
   unzipLocation = "$toolsPath"
@@ -35,51 +26,70 @@ Get-Process code -ea 0 | ForEach-Object { $_.CloseMainWindow() | Out-Null }
 Start-Sleep 1
 Get-Process code -ea 0 | Stop-Process  #in case gracefull shutdown did not succeed, try hard kill
 
-New-Item "$exePath.gui" -type file -force | Out-Null
-New-Item "$exePath.ignore" -type file -force | Out-Null
 Install-ChocolateyZipPackage @PackageArgs
 
-$args = ""
+$files = get-childitem $toolsPath -include *.exe -recurse
+foreach ($file in $files) {
+  #generate an ignore file
+  New-Item "$file.ignore" -type file -force | Out-Null
+}
+
+New-Item "$exePath.gui" -type file -force | Out-Null
+
+$params = ""
 
 If($pp.UserDataDir)
 {
-  $args = '$args --user-data-dir "$pp.UserDataDir"'
+  $params = "$params --user-data-dir ""$($pp.UserDataDir)"""
 }
 
 If($pp.ExtDir)
 {
-  $args = '$args --extensions-dir "$pp.ExtDir"'
+  $params = "$params --extensions-dir ""$($pp.ExtDir)"""
 }
 
 If($pp.DisableGpu)
 {
-  $args = '$args --disable-gpu'
+  $params = "$params --disable-gpu"
 }
 
 If(!$pp.NoDesktopIcon)
 {
   If($pp.NoQuicklaunchIcon)
   {
-    Install-ChocolateyShortcut -ShortcutFilePath $shortcutPath -TargetPath $exePath -WorkingDirectory $installPath -Arguments $args
+    Install-ChocolateyShortcut -ShortcutFilePath $shortcutPath -TargetPath $exePath -WorkingDirectory $toolsPath -Arguments $params
   }
   else
   {
-    Install-ChocolateyShortcut -ShortcutFilePath $shortcutPath -TargetPath $exePath -WorkingDirectory $installPath -Arguments $args -PinToTaskbar
+    Install-ChocolateyShortcut -ShortcutFilePath $shortcutPath -TargetPath $exePath -WorkingDirectory $toolsPath -Arguments $params -PinToTaskbar
   }
 }
 
 If(!$pp.DontAddToPath)
 {
   New-Item "$cmdPath.gui" -type file -force | Out-Null
-  Install-BinFile -Name Code -Path $cmdPath -UseStart -Command $args
+  Install-BinFile -Name Code -Path """$cmdPath""" -UseStart -Command """$params"""
+}
+
+if( -not (Test-Path -path HKCR:) ) {
+  New-PSDrive -Name HKCR -PSProvider registry -Root Hkey_Classes_Root
 }
 
 If(!$pp.NoContextMenuFiles)
 {
-  Install-ChocolateyExplorerMenuItem -MenuKey "VSCode" -MenuLabel "Open with Code" -Command '"$exePath" $args' -Type "file"
+    #%1 is automatically added at the end but we want it befored the params
+  Install-ChocolateyExplorerMenuItem -MenuKey "VSCode" -MenuLabel "Open with Code" -Command """$exePath"" ""%1"" $params" -Type "file"
+  $reg = Get-Item -LiteralPath 'HKCR:\*\shell\VSCode\command'
+  $value = $reg.GetValue($null)
+  $value = $value.substring(0,$value.length-6).trim()
+  Set-ItemProperty -LiteralPath 'HKCR:\*\shell\VSCode\command' -Name '(Default)' -Value $value
 }
 
 If(!$pp.NoContextMenuFolders)
 {
-  Install-ChocolateyExplorerMenuItem -MenuKey "VSCode" -MenuLabel "Open with Code" -Command '"$exePath" $args' -Type "directory"
+  Install-ChocolateyExplorerMenuItem -MenuKey "VSCode" -MenuLabel "Open with Code" -Command """$exePath"" ""%1"" $params" -Type "directory"
+  $reg = Get-Item -LiteralPath 'HKCR:\directory\shell\VSCode\command'
+  $value = $reg.GetValue($null)
+  $value = $value.substring(0,$value.length-6).trim()
+  Set-ItemProperty -LiteralPath 'HKCR:\directory\shell\VSCode\command' -Name '(Default)' -Value $value
 }
