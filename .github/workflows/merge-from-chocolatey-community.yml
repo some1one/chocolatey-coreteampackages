@@ -16,7 +16,7 @@ jobs:
     - name: Nightly Merge
       uses: robotology/gh-action-nightly-merge@v1.2.0
       with:
-        stable_branch: 'chocolatey-community/chocolatey-coreteampackages/master'
+        stable_branch: 'chocolatey-coreteampackages/master'
         development_branch: 'chocolatey-coreteampackages/master'
         allow_ff: false
         allow_forks: true
